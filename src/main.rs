@@ -1,9 +1,12 @@
 mod git;
+mod panes;
+mod ui;
 
 use anyhow::{Context, Result};
 use clap::Parser;
 use git::GitRepository;
 use std::path::PathBuf;
+use ui::UI;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -66,25 +69,19 @@ impl Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let repo_path = args.validate()?;
+    let _repo_path = args.validate()?;
 
-    println!("git-logue v0.1.0");
-    println!("Repository: {}", repo_path.display());
-    println!("Speed: {}ms per character", args.speed);
-    println!();
+    // Launch UI
+    let mut ui = UI::new();
+    ui.run()?;
 
-    let repo = GitRepository::open(&repo_path)?;
-
-    if let Some(commit_hash) = &args.commit {
-        println!("Single-commit mode: {}", commit_hash);
-        let metadata = repo.get_commit(commit_hash)?;
-        print_commit_info(&metadata);
-    } else {
-        println!("Random commit loop mode");
-        let metadata = repo.random_commit()?;
-        println!("Selected random commit:");
-        print_commit_info(&metadata);
-    }
+    // TODO: Integrate with git module to load and display commits
+    // let repo = GitRepository::open(&repo_path)?;
+    // if let Some(commit_hash) = &args.commit {
+    //     let metadata = repo.get_commit(commit_hash)?;
+    // } else {
+    //     let metadata = repo.random_commit()?;
+    // }
 
     Ok(())
 }
