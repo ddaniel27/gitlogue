@@ -65,6 +65,17 @@ impl UI {
 
     fn run_loop(&mut self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
         loop {
+            // Update viewport height for scroll calculation
+            // Main content area height - status bar (3) - borders (2) = editor height
+            let size = terminal.size()?;
+            let editor_height = size
+                .height
+                .saturating_sub(3) // Status bar
+                .saturating_sub(2); // Main content borders
+            let viewport_height = (editor_height as f32 * 0.8) as usize; // 80% for editor
+            let viewport_height = viewport_height.saturating_sub(2); // Editor borders
+            self.engine.set_viewport_height(viewport_height);
+
             // Tick the animation engine
             let needs_redraw = self.engine.tick();
 

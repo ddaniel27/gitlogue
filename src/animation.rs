@@ -100,6 +100,7 @@ pub struct AnimationEngine {
     pause_until: Option<Instant>,
     pub cursor_visible: bool,
     cursor_blink_timer: Instant,
+    viewport_height: usize,
 }
 
 impl AnimationEngine {
@@ -114,7 +115,12 @@ impl AnimationEngine {
             pause_until: None,
             cursor_visible: true,
             cursor_blink_timer: Instant::now(),
+            viewport_height: 20, // Default, will be updated from UI
         }
+    }
+
+    pub fn set_viewport_height(&mut self, height: usize) {
+        self.viewport_height = height;
     }
 
     /// Load a commit and generate animation steps
@@ -277,6 +283,33 @@ impl AnimationEngine {
                 self.pause_until = Some(Instant::now() + Duration::from_millis(duration_ms));
             }
         }
+
+        // Update scroll to keep cursor centered
+        self.update_scroll();
+    }
+
+    fn update_scroll(&mut self) {
+        if self.viewport_height == 0 {
+            return;
+        }
+
+        let cursor_line = self.buffer.cursor_line;
+        let total_lines = self.buffer.lines.len();
+        let half_viewport = self.viewport_height / 2;
+
+        // Try to center the cursor line
+        let target_offset = if cursor_line < half_viewport {
+            // Near the top of file, don't scroll
+            0
+        } else if cursor_line + half_viewport >= total_lines {
+            // Near the bottom of file, show as much as possible
+            total_lines.saturating_sub(self.viewport_height)
+        } else {
+            // Middle of file, center the cursor
+            cursor_line.saturating_sub(half_viewport)
+        };
+
+        self.buffer.scroll_offset = target_offset;
     }
 
     pub fn is_finished(&self) -> bool {
