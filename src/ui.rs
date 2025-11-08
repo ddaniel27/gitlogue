@@ -88,8 +88,8 @@ impl UI {
         let right_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(60),  // Editor
-                Constraint::Percentage(40),  // Terminal
+                Constraint::Percentage(80),  // Editor
+                Constraint::Percentage(20),  // Terminal
             ])
             .split(content_layout[1]);
 
