@@ -41,6 +41,9 @@ pub struct EditorBuffer {
     /// Store old and new content for byte offset calculation
     pub old_content_lines: Vec<String>,
     pub new_content_lines: Vec<String>,
+    /// Pre-calculated byte offsets for each line (handles CRLF correctly)
+    pub old_content_line_offsets: Vec<usize>,
+    pub new_content_line_offsets: Vec<usize>,
 }
 
 impl EditorBuffer {
@@ -55,6 +58,8 @@ impl EditorBuffer {
             new_highlights: Vec::new(),
             old_content_lines: Vec::new(),
             new_content_lines: Vec::new(),
+            old_content_line_offsets: Vec::new(),
+            new_content_line_offsets: Vec::new(),
         }
     }
 
@@ -75,6 +80,8 @@ impl EditorBuffer {
             new_highlights: Vec::new(),
             old_content_lines: Vec::new(),
             new_content_lines: Vec::new(),
+            old_content_line_offsets: Vec::new(),
+            new_content_line_offsets: Vec::new(),
         }
     }
 
@@ -210,6 +217,18 @@ impl AnimationEngine {
 
     pub fn set_viewport_height(&mut self, height: usize) {
         self.viewport_height = height;
+    }
+
+    fn calculate_line_offsets(content: &str) -> Vec<usize> {
+        std::iter::once(0)
+            .chain(content.bytes().enumerate().filter_map(|(i, b)| {
+                if b == b'\n' {
+                    Some(i + 1)
+                } else {
+                    None
+                }
+            }))
+            .collect()
     }
 
     /// Add a terminal command with typing animation
@@ -651,6 +670,10 @@ impl AnimationEngine {
                 } else {
                     new_content.lines().map(|s| s.to_string()).collect()
                 };
+
+                // Pre-calculate line byte offsets (handles CRLF correctly)
+                self.buffer.old_content_line_offsets = Self::calculate_line_offsets(&old_content);
+                self.buffer.new_content_line_offsets = Self::calculate_line_offsets(&new_content);
 
                 // Initialize cached_highlights with old_highlights
                 self.buffer.cached_highlights = self.buffer.old_highlights.clone();

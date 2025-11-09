@@ -17,8 +17,8 @@ struct HighlightContext<'a> {
     cursor_line: usize,
     old_highlights: &'a [crate::syntax::HighlightSpan],
     new_highlights: &'a [crate::syntax::HighlightSpan],
-    old_content_lines: &'a [String],
-    new_content_lines: &'a [String],
+    old_line_offsets: &'a [usize],
+    new_line_offsets: &'a [usize],
     line_offset: isize,
 }
 
@@ -72,8 +72,8 @@ impl EditorPane {
             cursor_line: engine.buffer.cursor_line,
             old_highlights: &engine.buffer.old_highlights,
             new_highlights: &engine.buffer.new_highlights,
-            old_content_lines: &engine.buffer.old_content_lines,
-            new_content_lines: &engine.buffer.new_content_lines,
+            old_line_offsets: &engine.buffer.old_content_line_offsets,
+            new_line_offsets: &engine.buffer.new_content_line_offsets,
             line_offset: engine.line_offset,
         });
         spans.extend(line_spans);
@@ -96,20 +96,20 @@ impl EditorPane {
     }
 
     fn highlight_line(&self, ctx: HighlightContext<'_>) -> Vec<Span<'_>> {
-        let (highlights, content_lines) = self.select_highlights_and_content(
+        let (highlights, line_offsets) = self.select_highlights_and_offsets(
             ctx.line_num,
             ctx.cursor_line,
             ctx.old_highlights,
             ctx.new_highlights,
-            ctx.old_content_lines,
-            ctx.new_content_lines,
+            ctx.old_line_offsets,
+            ctx.new_line_offsets,
         );
 
         let byte_offset = self.calculate_byte_offset(
             ctx.line_num,
             ctx.cursor_line,
             ctx.line_offset,
-            content_lines,
+            line_offsets,
         );
 
         let line_highlights =
@@ -124,21 +124,21 @@ impl EditorPane {
         )
     }
 
-    fn select_highlights_and_content<'a>(
+    fn select_highlights_and_offsets<'a>(
         &self,
         line_num: usize,
         cursor_line: usize,
         old_highlights: &'a [crate::syntax::HighlightSpan],
         new_highlights: &'a [crate::syntax::HighlightSpan],
-        old_content_lines: &'a [String],
-        new_content_lines: &'a [String],
-    ) -> (&'a [crate::syntax::HighlightSpan], &'a [String]) {
+        old_line_offsets: &'a [usize],
+        new_line_offsets: &'a [usize],
+    ) -> (&'a [crate::syntax::HighlightSpan], &'a [usize]) {
         if line_num < cursor_line {
-            (new_highlights, new_content_lines)
+            (new_highlights, new_line_offsets)
         } else if line_num == cursor_line {
             (&[], &[])
         } else {
-            (old_highlights, old_content_lines)
+            (old_highlights, old_line_offsets)
         }
     }
 
@@ -147,7 +147,7 @@ impl EditorPane {
         line_num: usize,
         cursor_line: usize,
         line_offset: isize,
-        content_lines: &[String],
+        line_offsets: &[usize],
     ) -> usize {
         let target_line = if line_num > cursor_line {
             ((line_num as isize) - line_offset).max(0) as usize
@@ -155,11 +155,10 @@ impl EditorPane {
             line_num
         };
 
-        content_lines
-            .iter()
-            .take(target_line)
-            .map(|line| line.len() + 1)
-            .sum()
+        line_offsets
+            .get(target_line)
+            .copied()
+            .unwrap_or_else(|| *line_offsets.last().unwrap_or(&0))
     }
 
     fn filter_line_highlights(
