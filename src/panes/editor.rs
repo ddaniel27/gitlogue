@@ -191,14 +191,11 @@ impl EditorPane {
         let chars: Vec<char> = line_content.chars().collect();
         let mut spans = Vec::new();
 
+        let mut relative_byte = 0;
         for (char_idx, ch) in chars.iter().enumerate() {
-            let char_byte_start = byte_offset
-                + line_content
-                    .chars()
-                    .take(char_idx)
-                    .map(|c| c.len_utf8())
-                    .sum::<usize>();
+            let char_byte_start = byte_offset + relative_byte;
             let char_byte_end = char_byte_start + ch.len_utf8();
+            relative_byte += ch.len_utf8();
 
             let color = self.get_char_color(char_byte_start, char_byte_end, line_highlights);
 
