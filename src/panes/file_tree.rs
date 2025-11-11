@@ -206,15 +206,19 @@ impl FileTreePane {
                 ];
 
                 // Fill to right edge with background color
-                if dir_content_width < area_width {
+                // When wrapped, need to fill the last line to the right edge
+                let wrapped_lines = Self::calculate_wrapped_lines(dir_content_width, area_width);
+                let total_space_needed = wrapped_lines * area_width;
+                let fill_count = total_space_needed.saturating_sub(dir_content_width);
+                if fill_count > 0 {
                     dir_spans.push(Span::styled(
-                        " ".repeat(area_width - dir_content_width),
+                        " ".repeat(fill_count),
                         Style::default().bg(theme.background_left),
                     ));
                 }
 
                 lines.push(Line::from(dir_spans));
-                display_line_count += Self::calculate_wrapped_lines(dir_content_width, area_width);
+                display_line_count += wrapped_lines;
             }
 
             // Add files
@@ -228,12 +232,17 @@ impl FileTreePane {
 
                 let indent = if dir.is_empty() { "" } else { "  " }.to_string();
                 let status_str = format!("{} ", status_char);
-                let stats_str = format!(" +{} -{}", additions, deletions);
+                let additions_str = format!(" +{}", additions);
+                let deletions_str = format!(" -{}", deletions);
 
                 // Calculate actual line width for wrapping (use display width for wide characters)
                 // Include left padding (2) in the width calculation
-                let content_width =
-                    2 + indent.width() + status_str.width() + filename.width() + stats_str.width();
+                let content_width = 2
+                    + indent.width()
+                    + status_str.width()
+                    + filename.width()
+                    + additions_str.width()
+                    + deletions_str.width();
 
                 let mut spans = vec![];
 
@@ -263,25 +272,31 @@ impl FileTreePane {
                             .add_modifier(Modifier::BOLD),
                     ));
                     spans.push(Span::styled(
-                        format!(" +{}", additions),
+                        additions_str.clone(),
                         Style::default()
                             .fg(theme.file_tree_stats_added)
                             .bg(theme.file_tree_current_file_bg),
                     ));
                     spans.push(Span::styled(
-                        format!(" -{}", deletions),
+                        deletions_str.clone(),
                         Style::default()
                             .fg(theme.file_tree_stats_deleted)
                             .bg(theme.file_tree_current_file_bg),
                     ));
 
                     // Fill to right edge with background color
-                    if content_width < area_width {
+                    // When wrapped, need to fill the last line to the right edge
+                    let wrapped_lines = Self::calculate_wrapped_lines(content_width, area_width);
+                    let total_space_needed = wrapped_lines * area_width;
+                    let fill_count = total_space_needed.saturating_sub(content_width);
+                    if fill_count > 0 {
                         spans.push(Span::styled(
-                            " ".repeat(area_width - content_width),
+                            " ".repeat(fill_count),
                             Style::default().bg(theme.file_tree_current_file_bg),
                         ));
                     }
+
+                    display_line_count += wrapped_lines;
                 } else {
                     // Normal file
                     // Add left padding
@@ -307,28 +322,32 @@ impl FileTreePane {
                             .bg(theme.background_left),
                     ));
                     spans.push(Span::styled(
-                        format!(" +{}", additions),
+                        additions_str,
                         Style::default()
                             .fg(theme.file_tree_stats_added)
                             .bg(theme.background_left),
                     ));
                     spans.push(Span::styled(
-                        format!(" -{}", deletions),
+                        deletions_str,
                         Style::default()
                             .fg(theme.file_tree_stats_deleted)
                             .bg(theme.background_left),
                     ));
 
                     // Fill to right edge with background color
-                    if content_width < area_width {
+                    // When wrapped, need to fill the last line to the right edge
+                    let wrapped_lines = Self::calculate_wrapped_lines(content_width, area_width);
+                    let total_space_needed = wrapped_lines * area_width;
+                    let fill_count = total_space_needed.saturating_sub(content_width);
+                    if fill_count > 0 {
                         spans.push(Span::styled(
-                            " ".repeat(area_width - content_width),
+                            " ".repeat(fill_count),
                             Style::default().bg(theme.background_left),
                         ));
                     }
-                }
 
-                display_line_count += Self::calculate_wrapped_lines(content_width, area_width);
+                    display_line_count += wrapped_lines;
+                }
 
                 lines.push(Line::from(spans));
             }

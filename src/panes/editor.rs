@@ -141,6 +141,31 @@ impl EditorPane {
 
         spans.extend(line_spans);
 
+        // Fill cursor line to the right edge with background color (before right padding)
+        if is_cursor_line {
+            // Calculate total display width already added to spans (without right padding)
+            // Use unicode width instead of char count to handle wide characters (CJK, emojis, etc.)
+            let current_width_without_right_pad: usize = spans.iter().map(|s| s.content.width()).sum();
+            let right_pad_width = 2;
+            let current_width = current_width_without_right_pad + right_pad_width;
+
+            // When wrapped, need to fill the last line to the right edge
+            let wrapped_lines = if content_width == 0 {
+                1
+            } else {
+                current_width.div_ceil(content_width).max(1)
+            };
+            let total_space_needed = wrapped_lines * content_width;
+            let fill_count = total_space_needed.saturating_sub(current_width);
+
+            if fill_count > 0 {
+                spans.push(Span::styled(
+                    " ".repeat(fill_count),
+                    Style::default().bg(theme.editor_cursor_line_bg),
+                ));
+            }
+        }
+
         // Right padding
         if is_cursor_line {
             spans.push(Span::styled(
@@ -149,22 +174,6 @@ impl EditorPane {
             ));
         } else {
             spans.push(Span::raw("  "));
-        }
-
-        // Fill cursor line to the right edge with background color
-        if is_cursor_line {
-            // Calculate total display width already added to spans
-            // Use unicode width instead of char count to handle wide characters (CJK, emojis, etc.)
-            let current_width: usize = spans.iter().map(|s| s.content.width()).sum();
-
-            // Fill remaining space to content_width
-            if current_width < content_width {
-                let fill_count = content_width - current_width;
-                spans.push(Span::styled(
-                    " ".repeat(fill_count),
-                    Style::default().bg(theme.editor_cursor_line_bg),
-                ));
-            }
         }
 
         Line::from(spans)
