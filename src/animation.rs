@@ -1,4 +1,4 @@
-use crate::git::{CommitMetadata, DiffHunk, FileChange, LineChangeType};
+use crate::git::{CommitMetadata, DiffHunk, FileChange, FileStatus, LineChangeType};
 use crate::syntax::Highlighter;
 use rand::Rng;
 use std::cell::RefCell;
@@ -333,6 +333,22 @@ impl AnimationEngine {
                 });
                 self.steps.push(AnimationStep::Pause {
                     duration_ms: (self.speed_ms as f64 * OPEN_CMD_PAUSE) as u64,
+                });
+                continue;
+            }
+
+            // For deleted files, skip editor animation and only run rm + git add
+            if matches!(change.status, FileStatus::Deleted) {
+                self.steps.push(AnimationStep::Pause {
+                    duration_ms: (self.speed_ms as f64 * GIT_ADD_PAUSE) as u64,
+                });
+                self.add_terminal_command(&format!("rm {}", change.path));
+                self.steps.push(AnimationStep::Pause {
+                    duration_ms: (self.speed_ms as f64 * GIT_ADD_CMD_PAUSE) as u64,
+                });
+                self.add_terminal_command(&format!("git add {}", change.path));
+                self.steps.push(AnimationStep::Pause {
+                    duration_ms: (self.speed_ms as f64 * GIT_ADD_CMD_PAUSE) as u64,
                 });
                 continue;
             }
