@@ -42,8 +42,8 @@ pub struct Args {
     #[arg(
         short,
         long,
-        value_name = "HASH",
-        help = "Replay a specific commit (single-commit mode)"
+        value_name = "HASH_OR_RANGE",
+        help = "Replay a specific commit or commit range (e.g., HEAD~5..HEAD or abc123..)"
     )]
     pub commit: Option<String>,
 
@@ -197,6 +197,11 @@ fn main() -> Result<()> {
     let repo = GitRepository::open(&repo_path)?;
 
     let is_commit_specified = args.commit.is_some();
+    let is_range_mode = args
+        .commit
+        .as_ref()
+        .map(|c| c.contains(".."))
+        .unwrap_or(false);
 
     // Load config: CLI arguments > config file > defaults
     let config = Config::load()?;
@@ -216,8 +221,15 @@ fn main() -> Result<()> {
         theme = theme.with_transparent_background();
     }
 
+    // Setup commit range if specified
+    if is_range_mode {
+        repo.set_commit_range(args.commit.as_ref().unwrap())?;
+    }
+
     // Load initial commit
-    let metadata = if let Some(commit_hash) = &args.commit {
+    let metadata = if is_range_mode {
+        repo.next_range_commit()?
+    } else if let Some(commit_hash) = &args.commit {
         repo.get_commit(commit_hash)?
     } else {
         match order {
@@ -227,8 +239,11 @@ fn main() -> Result<()> {
         }
     };
 
-    // Create UI with repository reference (for random mode) or without (for single commit mode)
-    let repo_ref = if is_commit_specified && !loop_playback {
+    // Create UI with repository reference
+    // Range mode always needs repo reference for iteration
+    let repo_ref = if is_range_mode {
+        Some(&repo)
+    } else if is_commit_specified && !loop_playback {
         None
     } else {
         Some(&repo)
@@ -240,6 +255,7 @@ fn main() -> Result<()> {
         order,
         loop_playback,
         args.commit.clone(),
+        is_range_mode,
     );
     ui.load_commit(metadata);
     ui.run()?;
