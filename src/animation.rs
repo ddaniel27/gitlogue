@@ -668,17 +668,21 @@ impl AnimationEngine {
                     // (the next line moves up to this position)
                 }
                 LineChangeType::Addition => {
-                    // Insert empty line at current buffer position
+                    let content = &line_change.content;
+                    let indentation_len = content.chars().take_while(|c| c.is_whitespace()).count();
+
+                    // Insert line with indentation already included
+                    let indentation: String = content.chars().take(indentation_len).collect();
                     self.steps.push(AnimationStep::InsertLine {
                         line: buffer_line,
-                        content: String::new(),
+                        content: indentation,
                     });
 
-                    // Type each character
-                    for (col, ch) in line_change.content.chars().enumerate() {
+                    // Type each character after the indentation
+                    for (i, ch) in content.chars().skip(indentation_len).enumerate() {
                         self.steps.push(AnimationStep::InsertChar {
                             line: buffer_line,
-                            col,
+                            col: indentation_len + i,
                             ch,
                         });
                     }
@@ -822,9 +826,10 @@ impl AnimationEngine {
             }
             AnimationStep::InsertLine { line, content } => {
                 self.active_pane = ActivePane::Editor;
+                let content_len = content.chars().count();
                 self.buffer.insert_line(line, content);
                 self.buffer.cursor_line = line;
-                self.buffer.cursor_col = 0;
+                self.buffer.cursor_col = content_len;
 
                 // Track line offset for old_highlights mapping
                 self.line_offset += 1;
