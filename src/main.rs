@@ -260,8 +260,7 @@ fn main() -> Result<()> {
         .as_ref()
         .map(|c| c.contains(".."))
         .unwrap_or(false);
-    let is_filtered =
-        args.author.is_some() || args.before.is_some() || args.after.is_some();
+    let is_filtered = args.author.is_some() || args.before.is_some() || args.after.is_some();
 
     // Load config: CLI arguments > config file > defaults
     let config = Config::load()?;
