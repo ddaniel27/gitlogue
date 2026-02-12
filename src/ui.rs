@@ -14,7 +14,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
     text::{Line, Span},
-    widgets::{Block, Borders, Padding, Paragraph},
+    widgets::{Block, Borders, Clear, Padding, Paragraph},
     Frame, Terminal,
 };
 use unicode_width::UnicodeWidthStr;
@@ -626,6 +626,7 @@ impl<'a> UI<'a> {
         let dialog_height = (items.len() as u16) + 4; // borders + padding
         let area = Self::centered_rect(size, dialog_width, dialog_height);
 
+        f.render_widget(Clear, area);
         f.render_widget(Paragraph::new(lines).block(block), area);
     }
 
@@ -662,6 +663,7 @@ impl<'a> UI<'a> {
         let dialog_height = (lines.len() as u16) + 4;
         let area = Self::centered_rect(size, 44, dialog_height);
 
+        f.render_widget(Clear, area);
         f.render_widget(Paragraph::new(lines).block(block), area);
     }
 
@@ -693,6 +695,7 @@ impl<'a> UI<'a> {
         let dialog_height = (lines.len() as u16) + 4;
         let area = Self::centered_rect(size, 48, dialog_height);
 
+        f.render_widget(Clear, area);
         f.render_widget(Paragraph::new(lines).block(block), area);
     }
 
